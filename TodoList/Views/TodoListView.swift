@@ -75,7 +75,6 @@ struct TodoListView: View {
 		}
 	}
 
-	
 	@ViewBuilder
 	private func todoRows(for todos: [Todo]) -> some View {
 		ForEach(todos) { todo in
