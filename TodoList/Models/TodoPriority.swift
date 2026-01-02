@@ -17,9 +17,9 @@ enum TodoPriority: Int, Codable, CaseIterable, Identifiable {
 	
 	var title: String {
 		switch self {
-		case .low: return "Low"
-		case .medium: return "Medium"
-		case .high: return "High"
+		case .low: return "!"
+		case .medium: return "!!"
+		case .high: return "!!!"
 		}
 	}
 	
@@ -28,14 +28,6 @@ enum TodoPriority: Int, Codable, CaseIterable, Identifiable {
 		case .low: return .secondary
 		case .medium: return .orange
 		case .high: return .red
-		}
-	}
-	
-	var systemImage: String {
-		switch self {
-		case .low: return "arrow.down"
-		case .medium: return "minus"
-		case .high: return "arrow.up"
 		}
 	}
 }

@@ -17,6 +17,7 @@ struct AddTodoView: View {
     @State private var todoTitle: String = ""
 	@State private var showDueDateAdd: Bool = false
 	@State private var priority: TodoPriority = .medium
+	@State private var notes: String = ""
     @Environment(\.dismiss) private var dismissAdd
 	@FocusState private var isFocused: Field?
 	var addDisabled: Bool {
@@ -28,6 +29,7 @@ struct AddTodoView: View {
             Form {
                 TextField("Add Todo", text: $todoTitle)
 					.focused($isFocused, equals: .todoTitle)
+				TextField("Notes", text: $notes)
                 if let errorMessage = vm.errorMessage {
                     Text(errorMessage)
                         .font(.caption)
@@ -45,7 +47,7 @@ struct AddTodoView: View {
 				Section("Priority") {
 					Picker("Priority", selection: $priority) {
 						ForEach(TodoPriority.allCases) { priority in
-							Label(priority.title, systemImage: priority.systemImage)
+							Text(priority.title)
 								.tag(priority)
 						}
 					}
@@ -64,7 +66,8 @@ struct AddTodoView: View {
                         if vm.addTodo(
 							title: todoTitle,
 							dueDate: showDueDateAdd ? dueDate : nil,
-							priority: priority
+							priority: priority,
+							notes: notes
 						) {
                             dismissAdd()
                         }

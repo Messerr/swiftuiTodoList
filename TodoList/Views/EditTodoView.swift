@@ -12,6 +12,7 @@ struct EditTodoView: View {
 	let todo: Todo
 	
 	@State private var title: String
+	@State private var notes: String
 	@State private var dueDate: Date
 	@State private var hasDueDate: Bool
 	@State private var showDiscardAlert: Bool = false
@@ -39,7 +40,9 @@ struct EditTodoView: View {
 		
 		let priorityChanged = priority != todo.priority
 		
-		return titleChanged || dueDateChanged || dueDateValueChanged || completionChanged || priorityChanged
+		let notesChanged = notes != todo.notes
+		
+		return titleChanged || dueDateChanged || dueDateValueChanged || completionChanged || priorityChanged || notesChanged
 	}
 
 	
@@ -52,12 +55,14 @@ struct EditTodoView: View {
 		_dueDate = State(initialValue: todo.dueDate ?? Date())
 		_isCompleted = State(initialValue: todo.isCompleted)
 		_priority = State(initialValue: todo.priority)
+		_notes = State(initialValue: todo.notes ?? "")
 	}
 	
 	var body: some View {
 		NavigationStack {
 			Form {
 				TextField("Title", text: $title)
+				TextField("Notes", text: $notes)
 				Toggle("Has Due Date", isOn: $hasDueDate)
 				
 				if hasDueDate {
@@ -71,7 +76,7 @@ struct EditTodoView: View {
 				Section("Priority") {
 					Picker("Priority", selection: $priority) {
 						ForEach(TodoPriority.allCases) { priority in
-							Label(priority.title, systemImage: priority.systemImage)
+							Text(priority.title)
 								.tag(priority)
 						}
 					}
@@ -90,6 +95,7 @@ struct EditTodoView: View {
 							isCompleted: isCompleted,
 							priority: priority,
 							sortOrder: todo.sortOrder,
+							notes: notes
 						)
 						vm.updateTodo(updatedTodo)
 						dismiss()
@@ -126,7 +132,8 @@ struct EditTodoView: View {
 		dueDate: nil,
 		isCompleted: false,
 		priority: .medium,
-		sortOrder: 1
+		sortOrder: 1,
+		notes: "This is a note"
 	)
 	
 	EditTodoView(vm: TodoListViewModel(), todo: todo)

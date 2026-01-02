@@ -65,20 +65,26 @@ struct TodoRowView: View {
     var body: some View {
 		HStack {
 			VStack(alignment: .leading, spacing: 4) {
-				Text(todo.title)
-					.strikethrough(todo.isCompleted)
-					.foregroundStyle(todo.isCompleted ? .secondary : .primary)
-				
+				HStack {
+					Text(todo.priority.title)
+						.foregroundStyle(todo.priority.color)
+					Text(todo.title)
+						.strikethrough(todo.isCompleted)
+						.foregroundStyle(todo.isCompleted ? .secondary : .primary)
+				}
+				if let notes = todo.notes, !notes.isEmpty {
+					Text(notes)
+						.font(.subheadline)
+						.foregroundStyle(.secondary)
+						.lineLimit(2)
+				}
+
 				HStack(spacing: 8) {
 					if let dueDate = todo.dueDate {
 						Text(dueDate, format: .dateTime.month().day())
 							.font(.caption)
 							.foregroundStyle(.secondary)
 					}
-					
-					Label(todo.priority.title, systemImage: todo.priority.systemImage)
-						.font(.caption)
-						.foregroundStyle(todo.priority.color)
 				}
 			}
 			
@@ -102,7 +108,8 @@ struct TodoRowView: View {
 		dueDate: .now,
         isCompleted: false,
 		priority: .medium,
-		sortOrder: 1
+		sortOrder: 1,
+		notes: "This is a note"
     )
 
     TodoRowView(todo: previewTodo, onToggle: { value in })

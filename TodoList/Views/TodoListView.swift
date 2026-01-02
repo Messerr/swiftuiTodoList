@@ -11,13 +11,12 @@ import SwiftUI
 struct TodoListView: View {
 	@State private var isAddShowing: Bool = false
 	@State private var isCompletedExpanded = false
-	let vm: TodoListViewModel
-	
+	@Bindable var vm: TodoListViewModel
+
 	var body: some View {
 		List {
 			ForEach(vm.sections) { section in
 				let todos = vm.todos(for: section)
-				
 				if section == .completed {
 					Section {
 						DisclosureGroup(
@@ -35,7 +34,7 @@ struct TodoListView: View {
 								Label("Completed", systemImage: "checkmark.circle")
 								Spacer()
 							}
-							.contentShape(Rectangle()) // tap anywhere
+							.contentShape(Rectangle())
 						}
 					}
 				} else {
@@ -47,6 +46,11 @@ struct TodoListView: View {
 				}
 			}
 		}
+		.searchable(
+			text: $vm.searchString,
+			placement: .navigationBarDrawer(displayMode: .automatic),
+			prompt: "Search Todos"
+		)
 		.navigationTitle("Todos")
 		.toolbar {
 			ToolbarItem(placement: .topBarTrailing) {

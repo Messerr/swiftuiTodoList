@@ -10,31 +10,10 @@ import SwiftUI
 
 @Observable
 final class TodoListViewModel{
-	enum TodoSection: Identifiable, CaseIterable {
-		case overdue
-		case today
-		case upcoming
-		case completed
-		
-		var id: Self { self }
-		
-		var title: String {
-			switch self {
-			case .overdue: return "Overdue"
-			case .today: return "Today"
-			case .upcoming: return "Upcoming"
-			case .completed: return "Completed"
-			}
-		}
-	}
+	var todos: [Todo] = []
+	var searchString: String = ""
+	var errorMessage: String?
 
-	enum TodoSortMode {
-		case manual
-		case priority
-	}
-
-    var todos: [Todo] = []
-    var errorMessage: String?
     private var directoryURL: URL {
         try! FileManager.default.url(
             for: .documentDirectory,
@@ -54,6 +33,16 @@ final class TodoListViewModel{
         directoryURL.appendingPathComponent("todos.json")
     }
 	
+	//MARK: - Search
+	func matchesSearch(_ todo: Todo) -> Bool {
+		guard !searchString.isEmpty else {
+			return true
+		}
+		
+		return todo.title.localizedCaseInsensitiveContains(searchString)
+	}
+	
+	//MARK: - Filters
 	var overDueTodos: [Todo] {
 			todos
 			.filter { isOverdue($0) && !$0.isCompleted }
@@ -77,12 +66,17 @@ final class TodoListViewModel{
 			.filter(isCompleted)
 			.sorted { $0.sortOrder < $1.sortOrder }
 	}
+	var todosWithNoDueDate: [Todo] {
+		todos
+			.filter(hasNoDueDate)
+	}
     
     init() {
         loadTodos()
     }
     
-	func addTodo(title: String, dueDate: Date?, priority: TodoPriority) -> Bool {
+	// MARK: - CRUD functions
+	func addTodo(title: String, dueDate: Date?, priority: TodoPriority, notes: String?) -> Bool {
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
 		
         guard !trimmedTitle.isEmpty else {
@@ -97,7 +91,8 @@ final class TodoListViewModel{
 			dueDate: dueDate,
             isCompleted: false,
 			priority: priority,
-			sortOrder: todos.count
+			sortOrder: todos.count,
+			notes: notes
         )
         todos.append(newTodo)
         saveTodos()
@@ -170,6 +165,7 @@ final class TodoListViewModel{
 		saveTodos()
 	}
 	
+	// MARK: - Todo Status
 	func isOverdue(_ todo: Todo) -> Bool {
 		guard let dueDate = todo.dueDate else {
 			return false
@@ -206,10 +202,15 @@ final class TodoListViewModel{
 		return startOfDueDate > startOfToday
 	}
 	
+	func hasNoDueDate(_ todo: Todo) -> Bool {
+		todo.dueDate == nil && !todo.isCompleted
+	}
+	
 	func isCompleted(_ todo: Todo) -> Bool {
 		todo.isCompleted
 	}
 	
+	// MARK: - Sections
 	func todos(for section: TodoSection) -> [Todo] {
 		let baseTodos: [Todo]
 		
@@ -220,11 +221,14 @@ final class TodoListViewModel{
 			baseTodos = todos.filter { isDueToday($0) && !$0.isCompleted }
 		case .upcoming:
 			baseTodos = todos.filter { isUpcoming($0) && !$0.isCompleted }
+		case .noDueDate:
+			baseTodos = todos.filter { hasNoDueDate($0) }
 		case .completed:
 			baseTodos = todos.filter { $0.isCompleted }
 		}
 		
-		return sortedTodos(baseTodos)
+		let searchedTodos = baseTodos.filter(matchesSearch)
+		return sortedTodos(searchedTodos)
 	}
 
 	
@@ -237,8 +241,9 @@ final class TodoListViewModel{
 		}
 	}
 	
+	
+	// MARK: - Sort
 	func sortedTodos(_ todos: [Todo]) -> [Todo] {
-		print(sortMode)
 		switch sortMode {
 		case .manual:
 			return todos.sorted { $0.sortOrder < $1.sortOrder }
