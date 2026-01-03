@@ -96,8 +96,6 @@ struct TodoRowView: View {
 					onToggle(todo)
 				}
 		}
-        .animation(.easeInOut, value: todo.isCompleted)
-		.animation(.easeInOut, value: todo.dueDate)
     }
 }
 
@@ -109,7 +107,8 @@ struct TodoRowView: View {
         isCompleted: false,
 		priority: .medium,
 		sortOrder: 1,
-		notes: "This is a note"
+		notes: "This is a note",
+        parentID: nil
     )
 
     TodoRowView(todo: previewTodo, onToggle: { value in })

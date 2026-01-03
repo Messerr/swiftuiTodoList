@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 @Observable
-final class TodoListViewModel{
+final class TodoListViewModel {
 	var todos: [Todo] = []
 	var searchString: String = ""
 	var errorMessage: String?
@@ -92,7 +92,8 @@ final class TodoListViewModel{
             isCompleted: false,
 			priority: priority,
 			sortOrder: todos.count,
-			notes: notes
+			notes: notes,
+            parentID: nil
         )
         todos.append(newTodo)
         saveTodos()
@@ -104,7 +105,6 @@ final class TodoListViewModel{
 		saveTodos()
 	}
 
-    
     func loadTodos() {
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             return
@@ -165,6 +165,12 @@ final class TodoListViewModel{
 		saveTodos()
 	}
 	
+    func subtasks(for todo: Todo) -> [Todo] {
+        todos
+            .filter { $0.parentID == todo.id }
+            .sorted { $0.sortOrder < $1.sortOrder }
+    }
+    
 	// MARK: - Todo Status
 	func isOverdue(_ todo: Todo) -> Bool {
 		guard let dueDate = todo.dueDate else {

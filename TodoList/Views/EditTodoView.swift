@@ -95,7 +95,8 @@ struct EditTodoView: View {
 							isCompleted: isCompleted,
 							priority: priority,
 							sortOrder: todo.sortOrder,
-							notes: notes
+							notes: notes,
+                            parentID: todo.parentID
 						)
 						vm.updateTodo(updatedTodo)
 						dismiss()
@@ -133,7 +134,8 @@ struct EditTodoView: View {
 		isCompleted: false,
 		priority: .medium,
 		sortOrder: 1,
-		notes: "This is a note"
+		notes: "This is a note",
+        parentID: nil
 	)
 	
 	EditTodoView(vm: TodoListViewModel(), todo: todo)

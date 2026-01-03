@@ -11,77 +11,114 @@ import SwiftUI
 struct AddTodoView: View {
 	enum Field: Hashable {
 		case todoTitle
+        case notes
 	}
+    
     let vm: TodoListViewModel
-	@State private var dueDate = Date()
+	
     @State private var todoTitle: String = ""
+    @State private var notes: String = ""
+    @State private var priority: TodoPriority = .medium
+    
 	@State private var showDueDateAdd: Bool = false
-	@State private var priority: TodoPriority = .medium
-	@State private var notes: String = ""
-    @Environment(\.dismiss) private var dismissAdd
-	@FocusState private var isFocused: Field?
+    @State private var dueDate = Date()
+    
+    @FocusState private var isFocused: Field?
+    @Environment(\.dismiss) private var dismiss
+	
+    
 	var addDisabled: Bool {
 		todoTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        || vm.errorMessage != nil
 	}
 
     var body: some View {
-        NavigationStack {
-            Form {
-                TextField("Add Todo", text: $todoTitle)
-					.focused($isFocused, equals: .todoTitle)
-				TextField("Notes", text: $notes)
-                if let errorMessage = vm.errorMessage {
-                    Text(errorMessage)
-                        .font(.caption)
-                        .foregroundStyle(.red)
+        Form {
+            TextField("Add Todo", text: $todoTitle)
+                .focused($isFocused, equals: .todoTitle)
+            
+            ZStack(alignment: .topLeading) {
+                if notes.isEmpty {
+                    Text("Notes")
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 8)
+                        .padding(.leading, 4)
                 }
-				Toggle("Add Due Date", isOn: $showDueDateAdd)
-				if showDueDateAdd {
-					DatePicker(
-						"Due Date",
-						selection: $dueDate,
-						displayedComponents: [.date]
-					)
-					.transition(.opacity.combined(with: .move(edge: .top)))
-				}
-				Section("Priority") {
-					Picker("Priority", selection: $priority) {
-						ForEach(TodoPriority.allCases) { priority in
-							Text(priority.title)
-								.tag(priority)
-						}
-					}
-					.pickerStyle(.segmented)
-				}
+                TextEditor(text: $notes)
+                    .frame(minHeight: 80)
+                    .focused($isFocused, equals: .notes)
             }
-			.animation(.easeInOut, value: showDueDateAdd)
-			.onAppear {
-				isFocused = .todoTitle
-			}
-            .navigationTitle("Add Todo")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add") {
-                        if vm.addTodo(
-							title: todoTitle,
-							dueDate: showDueDateAdd ? dueDate : nil,
-							priority: priority,
-							notes: notes
-						) {
-                            dismissAdd()
-                        }
+            
+            if let errorMessage = vm.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+            
+            Toggle("Add Due Date", isOn: $showDueDateAdd)
+            
+            if showDueDateAdd {
+                DatePicker(
+                    "Due Date",
+                    selection: $dueDate,
+                    displayedComponents: [.date]
+                )
+            }
+            
+            Section("Priority") {
+                Picker("Priority", selection: $priority) {
+                    ForEach(TodoPriority.allCases) { priority in
+                        Text(priority.title)
+                            .tag(priority)
                     }
-					.disabled(addDisabled)
                 }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel") {
-						vm.clearError()
-                        dismissAdd()
+                .pickerStyle(.segmented)
+            }
+        }
+        .navigationTitle("Add Todo")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Cancel") {
+                    resetForm()
+                    dismiss()
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Add") {
+                    if vm.addTodo(
+                        title: todoTitle,
+                        dueDate: showDueDateAdd ? dueDate : nil,
+                        priority: priority,
+                        notes: notes.isEmpty ? nil : notes
+                    ) {
+                        resetForm()
+                        dismiss()
                     }
+                }
+                .disabled(addDisabled)
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") {
+                    isFocused = nil
                 }
             }
         }
+        .onAppear {
+            isFocused = .todoTitle
+        }
+    }
+    
+    private func resetForm() {
+        todoTitle = ""
+        notes = ""
+        priority = .medium
+        showDueDateAdd = false
+        dueDate = Date()
+        vm.clearError()
     }
 }
 

@@ -71,7 +71,9 @@ struct TodoListView: View {
 			}
 		}
 		.sheet(isPresented: $isAddShowing) {
-			AddTodoView(vm: vm)
+            NavigationStack {
+                AddTodoView(vm: vm)
+            }
 		}
 	}
 

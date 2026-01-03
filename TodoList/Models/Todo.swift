@@ -15,9 +15,10 @@ struct Todo: Identifiable, Codable, Equatable {
 	let priority: TodoPriority
 	var sortOrder: Int
 	let notes: String?
+    let parentID: UUID?
 	
 	enum CodingKeys: String, CodingKey {
-		case id, title, dueDate, isCompleted, priority, sortOrder, notes
+		case id, title, dueDate, isCompleted, priority, sortOrder, notes, parentID
 	}
 	
 	init(
@@ -27,7 +28,8 @@ struct Todo: Identifiable, Codable, Equatable {
 		isCompleted: Bool,
 		priority: TodoPriority,
 		sortOrder: Int,
-		notes: String?
+		notes: String?,
+        parentID: UUID?
 	) {
 		self.id = id
 		self.title = title
@@ -36,6 +38,7 @@ struct Todo: Identifiable, Codable, Equatable {
 		self.priority = priority
 		self.sortOrder = sortOrder
 		self.notes = notes
+        self.parentID = parentID
 	}
 	
 	init(from decoder: Decoder) throws {
@@ -48,6 +51,7 @@ struct Todo: Identifiable, Codable, Equatable {
 		priority = try container.decodeIfPresent(TodoPriority.self, forKey: .priority) ?? .medium
 		sortOrder = try container.decodeIfPresent(Int.self, forKey: .sortOrder) ?? 0
 		notes = try container.decodeIfPresent(String.self, forKey: .notes)
+        parentID = try container.decodeIfPresent(UUID.self, forKey: .parentID)
 	}
 }
 
