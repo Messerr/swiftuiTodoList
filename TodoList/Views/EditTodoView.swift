@@ -18,6 +18,7 @@ struct EditTodoView: View {
 	@State private var showDiscardAlert: Bool = false
 	@State private var isCompleted: Bool
 	@State private var priority: TodoPriority
+	@State private var newSubtask: Todo?
 	
 	@Environment(\.dismiss) private var dismiss
 	
@@ -82,7 +83,34 @@ struct EditTodoView: View {
 					}
 					.pickerStyle(.segmented)
 				}
-				
+				Section("Subtasks") {
+					let subtasks = vm.subtasks(for: todo)
+					
+					if subtasks.isEmpty {
+						Text("No Subtasks Yet")
+							.foregroundStyle(.secondary)
+							.font(.caption)
+					} else {
+						ForEach(subtasks) { subtask in
+							NavigationLink {
+								EditTodoView(vm: vm, todo: subtask)
+							} label: {
+								TodoRowView(
+									todo: subtask,
+									onToggle: vm.toggleCompletion
+								)
+							}
+						}
+						.onDelete { offsets in
+							offsets
+								.map { subtasks[$0] }
+								.forEach(vm.deleteTodo)
+						}
+					}
+				}
+			}
+			.navigationDestination(item: $newSubtask) { subtask in
+				EditTodoView(vm: vm, todo: subtask)
 			}
 			.navigationTitle("Edit Todo")
 			.toolbar {
@@ -110,6 +138,21 @@ struct EditTodoView: View {
 						} else {
 							dismiss()
 						}
+					}
+				}
+				ToolbarItem(placement: .bottomBar) {
+					Button {
+						if let created = vm.addTodo(
+							title: "New Subtask",
+							dueDate: nil,
+							priority: .medium,
+							notes: nil,
+							parentID: todo.id
+						) {
+							newSubtask = created
+						}
+					} label: {
+						Label("Add Subtask", systemImage: "plus")
 					}
 				}
 			}

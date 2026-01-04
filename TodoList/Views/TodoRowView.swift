@@ -61,6 +61,12 @@ struct TodoRowView: View {
 			return .secondary
 		}
 	}
+	private var isSubtask: Bool {
+		todo.parentID != nil
+	}
+	private var leadingIndent: CGFloat {
+		isSubtask ? 20 : 0
+	}
 
     var body: some View {
 		HStack {
@@ -96,6 +102,7 @@ struct TodoRowView: View {
 					onToggle(todo)
 				}
 		}
+		.padding(.leading, leadingIndent)
     }
 }
 
