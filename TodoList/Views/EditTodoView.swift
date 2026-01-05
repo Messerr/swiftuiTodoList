@@ -102,11 +102,23 @@ struct EditTodoView: View {
                                     completedSubtaskCount: vm.completedSubtaskCount(for: subtask)
 								)
 							}
-						}
-						.onDelete { offsets in
-							offsets
-								.map { subtasks[$0] }
-								.forEach(vm.deleteTodo)
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                if !subtask.isCompleted {
+                                    Button {
+                                        vm.toggleCompletion(for: subtask)
+                                    } label: {
+                                        Label("Complete", systemImage: "checkmark")
+                                    }
+                                    .tint(.green)
+                                }
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    vm.deleteTodo(subtask)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
 						}
 					}
                 } header: {
