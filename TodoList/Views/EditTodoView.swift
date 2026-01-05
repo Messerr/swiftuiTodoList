@@ -18,6 +18,7 @@ struct EditTodoView: View {
 	@State private var showDiscardAlert: Bool = false
 	@State private var isCompleted: Bool
 	@State private var priority: TodoPriority
+	@State private var newSubtask: Todo?
 	
 	@Environment(\.dismiss) private var dismiss
 	
@@ -82,7 +83,60 @@ struct EditTodoView: View {
 					}
 					.pickerStyle(.segmented)
 				}
-				
+				Section() {
+					let subtasks = vm.subtasks(for: todo)
+					
+					if subtasks.isEmpty {
+						Text("No Subtasks Yet")
+							.foregroundStyle(.secondary)
+							.font(.caption)
+					} else {
+						ForEach(subtasks) { subtask in
+							NavigationLink {
+								EditTodoView(vm: vm, todo: subtask)
+							} label: {
+								TodoRowView(
+									todo: subtask,
+									onToggle: vm.toggleCompletion,
+                                    subtaskCount: vm.subtaskCount(for: subtask),
+                                    completedSubtaskCount: vm.completedSubtaskCount(for: subtask)
+								)
+							}
+                            .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                if !subtask.isCompleted {
+                                    Button {
+                                        vm.toggleCompletion(for: subtask)
+                                    } label: {
+                                        Label("Complete", systemImage: "checkmark")
+                                    }
+                                    .tint(.green)
+                                }
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    vm.deleteTodo(subtask)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+						}
+					}
+                } header: {
+                    HStack {
+                        Text("Subtasks")
+                        let total = vm.subtaskCount(for: todo)
+                        let completed = vm.completedSubtaskCount(for: todo)
+                        if total > 0 {
+                            Spacer()
+                            Text("\(completed) / \(total)")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+			}
+			.navigationDestination(item: $newSubtask) { subtask in
+				EditTodoView(vm: vm, todo: subtask)
 			}
 			.navigationTitle("Edit Todo")
 			.toolbar {
@@ -95,7 +149,8 @@ struct EditTodoView: View {
 							isCompleted: isCompleted,
 							priority: priority,
 							sortOrder: todo.sortOrder,
-							notes: notes
+							notes: notes,
+                            parentID: todo.parentID
 						)
 						vm.updateTodo(updatedTodo)
 						dismiss()
@@ -111,6 +166,23 @@ struct EditTodoView: View {
 						}
 					}
 				}
+                if todo.parentID == nil {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            if let created = vm.addTodo(
+                                title: "New Subtask",
+                                dueDate: nil,
+                                priority: .medium,
+                                notes: nil,
+                                parentID: todo.id
+                            ) {
+                                newSubtask = created
+                            }
+                        } label: {
+                            Label("Add Subtask", systemImage: "plus")
+                        }
+                    }
+                }
 			}
 			.alert("Discard Changes?", isPresented: $showDiscardAlert) {
 				Button("Discard Changes", role: .destructive) {
@@ -133,7 +205,8 @@ struct EditTodoView: View {
 		isCompleted: false,
 		priority: .medium,
 		sortOrder: 1,
-		notes: "This is a note"
+		notes: "This is a note",
+        parentID: nil
 	)
 	
 	EditTodoView(vm: TodoListViewModel(), todo: todo)

@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 @Observable
-final class TodoListViewModel{
+final class TodoListViewModel {
 	var todos: [Todo] = []
 	var searchString: String = ""
 	var errorMessage: String?
@@ -44,31 +44,31 @@ final class TodoListViewModel{
 	
 	//MARK: - Filters
 	var overDueTodos: [Todo] {
-			todos
-			.filter { isOverdue($0) && !$0.isCompleted }
+		todos
+			.filter { isTopLevel($0) && isOverdue($0) && !$0.isCompleted  }
 			.sorted { $0.sortOrder < $1.sortOrder }
 	}
 	
 	var todayTodos: [Todo] {
-			todos
-			.filter { isDueToday($0) && !$0.isCompleted }
+		todos
+			.filter { isTopLevel($0) && isDueToday($0) && !$0.isCompleted }
 			.sorted { $0.sortOrder < $1.sortOrder }
 	}
 	
 	var upcomingTodos: [Todo] {
-			todos
-			.filter { isUpcoming($0) && !$0.isCompleted }
+		todos
+			.filter { isTopLevel($0) && isUpcoming($0) && !$0.isCompleted }
 			.sorted { $0.sortOrder < $1.sortOrder }
 	}
 	
 	var completedTodos: [Todo] {
-			todos
-			.filter(isCompleted)
+		todos
+			.filter { isTopLevel($0) && isCompleted($0) }
 			.sorted { $0.sortOrder < $1.sortOrder }
 	}
 	var todosWithNoDueDate: [Todo] {
 		todos
-			.filter(hasNoDueDate)
+			.filter { isTopLevel($0) && hasNoDueDate($0) }
 	}
     
     init() {
@@ -76,35 +76,61 @@ final class TodoListViewModel{
     }
     
 	// MARK: - CRUD functions
-	func addTodo(title: String, dueDate: Date?, priority: TodoPriority, notes: String?) -> Bool {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+	func addTodo(
+		title: String,
+		dueDate: Date?,
+		priority: TodoPriority,
+		notes: String?,
+		parentID: UUID?
+	) -> Todo? {
+		let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
 		
-        guard !trimmedTitle.isEmpty else {
-            errorMessage = "Title cannot be empty"
-            return false
-        }
-        
-        errorMessage = nil
-        let newTodo = Todo(
-            id: UUID(),
-            title: trimmedTitle,
+		guard !trimmedTitle.isEmpty else {
+			errorMessage = "Title cannot be empty"
+			return nil
+		}
+		
+		errorMessage = nil
+		
+		let newTodo = Todo(
+			id: UUID(),
+			title: trimmedTitle,
 			dueDate: dueDate,
-            isCompleted: false,
+			isCompleted: false,
 			priority: priority,
 			sortOrder: todos.count,
-			notes: notes
-        )
-        todos.append(newTodo)
-        saveTodos()
-        return true
-    }
+			notes: notes,
+			parentID: parentID
+		)
+		
+		todos.append(newTodo)
+		saveTodos()
+		return newTodo
+	}
+
+
+	// Convenience wrapper
+	func addTodo(
+		title: String,
+		dueDate: Date?,
+		priority: TodoPriority,
+		notes: String?
+	) -> Bool {
+		addTodo(
+			title: title,
+			dueDate: dueDate,
+			priority: priority,
+			notes: notes,
+			parentID: nil
+		) != nil
+	}
+
 	
 	func deleteTodo(_ todo: Todo) {
 		todos.removeAll { $0.id == todo.id }
 		saveTodos()
 	}
 
-    
     func loadTodos() {
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             return
@@ -131,6 +157,11 @@ final class TodoListViewModel{
     func toggleCompletion(for todo: Todo) {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             todos[index].isCompleted.toggle()
+            
+            let updatedTodo = todos[index]
+            
+            updateSubtaskCompletionIfNeeded(for: updatedTodo)
+			updateParentCompletionIfNeeded(for: todo)
             saveTodos()
         }
     }
@@ -164,7 +195,7 @@ final class TodoListViewModel{
 		
 		saveTodos()
 	}
-	
+    
 	// MARK: - Todo Status
 	func isOverdue(_ todo: Todo) -> Bool {
 		guard let dueDate = todo.dueDate else {
@@ -210,28 +241,93 @@ final class TodoListViewModel{
 		todo.isCompleted
 	}
 	
+	func isTopLevel(_ todo: Todo) -> Bool {
+		todo.parentID == nil
+	}
+	
+	//MARK: - Subtasks
+	func subtasks(for todo: Todo) -> [Todo] {
+		todos
+			.filter { $0.parentID == todo.id }
+			.sorted { $0.sortOrder < $1.sortOrder }
+	}
+	
+	func updateParentCompletionIfNeeded(for todo: Todo) {
+		guard let parentID = todo.parentID else {
+			return
+		}
+		
+		guard let parentIndex = todos.firstIndex(where: { $0.id == parentID }) else {
+			return
+		}
+
+		let subtasks = subtasks(for: todos[parentIndex])
+		let shouldBeCompleted = !subtasks.isEmpty && subtasks.allSatisfy(isCompleted)
+		if todos[parentIndex].isCompleted != shouldBeCompleted {
+			todos[parentIndex].isCompleted = shouldBeCompleted
+			saveTodos()
+		}
+	}
+    
+    func updateSubtaskCompletionIfNeeded(for todo: Todo) {
+        guard todo.isCompleted else {
+            return
+        }
+        
+        let subtasks = subtasks(for: todo)
+        guard !subtasks.isEmpty else {
+            return
+        }
+        
+        for subtask in subtasks {
+            if let index = todos.firstIndex(where: { $0.id == subtask.id }) {
+                todos[index].isCompleted = true
+            }
+        }
+        
+        saveTodos()
+    }
+    
+    func subtaskCount(for todo: Todo) -> Int {
+        subtasks(for: todo).count
+    }
+	
+    func completedSubtaskCount(for todo: Todo) -> Int {
+        subtasks(for: todo)
+            .filter(isCompleted)
+            .count
+    }
 	// MARK: - Sections
 	func todos(for section: TodoSection) -> [Todo] {
 		let baseTodos: [Todo]
 		
 		switch section {
 		case .overdue:
-			baseTodos = todos.filter { isOverdue($0) && !$0.isCompleted }
+			baseTodos = todos.filter {
+				isTopLevel($0) && isOverdue($0) && !$0.isCompleted
+			}
 		case .today:
-			baseTodos = todos.filter { isDueToday($0) && !$0.isCompleted }
+			baseTodos = todos.filter {
+				isTopLevel($0) && isDueToday($0) && !$0.isCompleted
+			}
 		case .upcoming:
-			baseTodos = todos.filter { isUpcoming($0) && !$0.isCompleted }
+			baseTodos = todos.filter {
+				isTopLevel($0) && isUpcoming($0) && !$0.isCompleted
+			}
 		case .noDueDate:
-			baseTodos = todos.filter { hasNoDueDate($0) }
+			baseTodos = todos.filter {
+				isTopLevel($0) && hasNoDueDate($0)
+			}
 		case .completed:
-			baseTodos = todos.filter { $0.isCompleted }
+			baseTodos = todos.filter {
+				isTopLevel($0) && isCompleted($0)
+			}
 		}
 		
 		let searchedTodos = baseTodos.filter(matchesSearch)
 		return sortedTodos(searchedTodos)
 	}
 
-	
 	func title(for section: TodoSection) -> String {
 		switch section {
 		case .completed:
@@ -240,7 +336,6 @@ final class TodoListViewModel{
 			return section.title
 		}
 	}
-	
 	
 	// MARK: - Sort
 	func sortedTodos(_ todos: [Todo]) -> [Todo] {

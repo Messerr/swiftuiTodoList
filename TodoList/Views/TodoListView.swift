@@ -71,11 +71,12 @@ struct TodoListView: View {
 			}
 		}
 		.sheet(isPresented: $isAddShowing) {
-			AddTodoView(vm: vm)
+            NavigationStack {
+                AddTodoView(vm: vm)
+            }
 		}
 	}
 
-	
 	@ViewBuilder
 	private func todoRows(for todos: [Todo]) -> some View {
 		ForEach(todos) { todo in
@@ -84,7 +85,9 @@ struct TodoListView: View {
 			} label: {
 				TodoRowView(
 					todo: todo,
-					onToggle: vm.toggleCompletion
+					onToggle: vm.toggleCompletion,
+                    subtaskCount: vm.subtaskCount(for: todo),
+                    completedSubtaskCount: vm.completedSubtaskCount(for: todo)
 				)
 			}
 		}

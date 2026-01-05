@@ -1,0 +1,6 @@
+
+*.xcuserstate
+xcuserdata/
+
+# macOS
+.DS_Store

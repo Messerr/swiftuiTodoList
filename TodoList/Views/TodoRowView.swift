@@ -10,6 +10,8 @@ import SwiftUI
 struct TodoRowView: View {
 	let todo: Todo
 	let onToggle: (Todo) -> Void
+    let subtaskCount: Int
+    let completedSubtaskCount: Int
 	private var isDimmed: Bool { todo.isCompleted }
 	private var isCompletedColor: Color {
 		todo.isCompleted ? .green : .primary
@@ -61,6 +63,15 @@ struct TodoRowView: View {
 			return .secondary
 		}
 	}
+	private var isSubtask: Bool {
+		todo.parentID != nil
+	}
+	private var leadingIndent: CGFloat {
+		isSubtask ? 20 : 0
+	}
+    private var isParent: Bool {
+        subtaskCount > 0
+    }
 
     var body: some View {
 		HStack {
@@ -71,6 +82,11 @@ struct TodoRowView: View {
 					Text(todo.title)
 						.strikethrough(todo.isCompleted)
 						.foregroundStyle(todo.isCompleted ? .secondary : .primary)
+                    if isParent {
+                        Text("\(completedSubtaskCount) / \(subtaskCount)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
 				}
 				if let notes = todo.notes, !notes.isEmpty {
 					Text(notes)
@@ -96,8 +112,7 @@ struct TodoRowView: View {
 					onToggle(todo)
 				}
 		}
-        .animation(.easeInOut, value: todo.isCompleted)
-		.animation(.easeInOut, value: todo.dueDate)
+		.padding(.leading, leadingIndent)
     }
 }
 
@@ -109,8 +124,9 @@ struct TodoRowView: View {
         isCompleted: false,
 		priority: .medium,
 		sortOrder: 1,
-		notes: "This is a note"
+		notes: "This is a note",
+        parentID: nil
     )
 
-    TodoRowView(todo: previewTodo, onToggle: { value in })
+    TodoRowView(todo: previewTodo, onToggle: { value in }, subtaskCount: 5, completedSubtaskCount: 2)
 }
