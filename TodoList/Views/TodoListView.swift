@@ -85,7 +85,9 @@ struct TodoListView: View {
 			} label: {
 				TodoRowView(
 					todo: todo,
-					onToggle: vm.toggleCompletion
+					onToggle: vm.toggleCompletion,
+                    subtaskCount: vm.subtaskCount(for: todo),
+                    completedSubtaskCount: vm.completedSubtaskCount(for: todo)
 				)
 			}
 		}

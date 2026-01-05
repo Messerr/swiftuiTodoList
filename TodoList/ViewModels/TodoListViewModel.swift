@@ -157,6 +157,10 @@ final class TodoListViewModel {
     func toggleCompletion(for todo: Todo) {
         if let index = todos.firstIndex(where: { $0.id == todo.id }) {
             todos[index].isCompleted.toggle()
+            
+            let updatedTodo = todos[index]
+            
+            updateSubtaskCompletionIfNeeded(for: updatedTodo)
 			updateParentCompletionIfNeeded(for: todo)
             saveTodos()
         }
@@ -264,7 +268,35 @@ final class TodoListViewModel {
 			saveTodos()
 		}
 	}
+    
+    func updateSubtaskCompletionIfNeeded(for todo: Todo) {
+        guard todo.isCompleted else {
+            return
+        }
+        
+        let subtasks = subtasks(for: todo)
+        guard !subtasks.isEmpty else {
+            return
+        }
+        
+        for subtask in subtasks {
+            if let index = todos.firstIndex(where: { $0.id == subtask.id }) {
+                todos[index].isCompleted = true
+            }
+        }
+        
+        saveTodos()
+    }
+    
+    func subtaskCount(for todo: Todo) -> Int {
+        subtasks(for: todo).count
+    }
 	
+    func completedSubtaskCount(for todo: Todo) -> Int {
+        subtasks(for: todo)
+            .filter(isCompleted)
+            .count
+    }
 	// MARK: - Sections
 	func todos(for section: TodoSection) -> [Todo] {
 		let baseTodos: [Todo]
@@ -304,7 +336,6 @@ final class TodoListViewModel {
 			return section.title
 		}
 	}
-	
 	
 	// MARK: - Sort
 	func sortedTodos(_ todos: [Todo]) -> [Todo] {

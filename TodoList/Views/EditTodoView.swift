@@ -83,7 +83,7 @@ struct EditTodoView: View {
 					}
 					.pickerStyle(.segmented)
 				}
-				Section("Subtasks") {
+				Section() {
 					let subtasks = vm.subtasks(for: todo)
 					
 					if subtasks.isEmpty {
@@ -97,7 +97,9 @@ struct EditTodoView: View {
 							} label: {
 								TodoRowView(
 									todo: subtask,
-									onToggle: vm.toggleCompletion
+									onToggle: vm.toggleCompletion,
+                                    subtaskCount: vm.subtaskCount(for: subtask),
+                                    completedSubtaskCount: vm.completedSubtaskCount(for: subtask)
 								)
 							}
 						}
@@ -107,7 +109,19 @@ struct EditTodoView: View {
 								.forEach(vm.deleteTodo)
 						}
 					}
-				}
+                } header: {
+                    HStack {
+                        Text("Subtasks")
+                        let total = vm.subtaskCount(for: todo)
+                        let completed = vm.completedSubtaskCount(for: todo)
+                        if total > 0 {
+                            Spacer()
+                            Text("\(completed) / \(total)")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
 			}
 			.navigationDestination(item: $newSubtask) { subtask in
 				EditTodoView(vm: vm, todo: subtask)
@@ -140,21 +154,23 @@ struct EditTodoView: View {
 						}
 					}
 				}
-				ToolbarItem(placement: .bottomBar) {
-					Button {
-						if let created = vm.addTodo(
-							title: "New Subtask",
-							dueDate: nil,
-							priority: .medium,
-							notes: nil,
-							parentID: todo.id
-						) {
-							newSubtask = created
-						}
-					} label: {
-						Label("Add Subtask", systemImage: "plus")
-					}
-				}
+                if todo.parentID == nil {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            if let created = vm.addTodo(
+                                title: "New Subtask",
+                                dueDate: nil,
+                                priority: .medium,
+                                notes: nil,
+                                parentID: todo.id
+                            ) {
+                                newSubtask = created
+                            }
+                        } label: {
+                            Label("Add Subtask", systemImage: "plus")
+                        }
+                    }
+                }
 			}
 			.alert("Discard Changes?", isPresented: $showDiscardAlert) {
 				Button("Discard Changes", role: .destructive) {
